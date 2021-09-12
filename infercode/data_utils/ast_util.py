@@ -44,7 +44,6 @@ class ASTUtil():
             current_node_json = queue_json.pop(0)
             num_nodes += 1
 
-
             for child in current_node.children:
                 child_type = str(child.type)
                 if child_type not in ignore_types:
@@ -59,10 +58,13 @@ class ASTUtil():
                     has_child = len(child.children) > 0
 
                     if not has_child:
-                        child_token = text[child.start_byte:child.end_byte].decode()
-                        child_sub_tokens_id = self.token_vocab.get_id_or_unk_for_text(child_token)
-                        subtokens = " ".join(identifiersplitting.split_identifier_into_parts(child_token))
-                        child_sub_tokens = self.token_vocab.tokenize(subtokens)
+                        try:
+                            child_token = text[child.start_byte:child.end_byte].decode()
+                            child_sub_tokens_id = self.token_vocab.get_id_or_unk_for_text(child_token)
+                            subtokens = " ".join(identifiersplitting.split_identifier_into_parts(child_token))
+                            child_sub_tokens = self.token_vocab.tokenize(subtokens)
+                        except Exception as e:
+                            print(child_token, e)
 
                     if len(child_sub_tokens_id) == 0:
                         child_sub_tokens_id.append(0)
@@ -83,5 +85,3 @@ class ASTUtil():
                     queue_json.append(child_json)
 
         return root_json, num_nodes
-
-   

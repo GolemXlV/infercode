@@ -16,6 +16,7 @@ import tensorflow.compat.v1 as tf
 from .base_client import BaseClient
 tf.disable_v2_behavior()
 
+
 class InferCodeTrainer(BaseClient):
 
     LOGGER = logging.getLogger('InferCodeTrainer')
@@ -34,29 +35,29 @@ class InferCodeTrainer(BaseClient):
         self.init_model_checkpoint()
 
         # ------------Set up the neural network------------
-       
-        self.training_data_processor = DatasetProcessor(input_data_path=self.data_path, 
-                                               output_tensors_path=self.output_processed_data_path, 
-                                               node_type_vocab_model_prefix=self.node_type_vocab_model_prefix, 
-                                               node_token_vocab_model_prefix=self.node_token_vocab_model_prefix, 
-                                               subtree_vocab_model_prefix=self.subtree_vocab_model_prefix, 
+
+        self.training_data_processor = DatasetProcessor(input_data_path=self.data_path,
+                                               output_tensors_path=self.output_processed_data_path,
+                                               node_type_vocab_model_prefix=self.node_type_vocab_model_prefix,
+                                               node_token_vocab_model_prefix=self.node_token_vocab_model_prefix,
+                                               subtree_vocab_model_prefix=self.subtree_vocab_model_prefix,
                                                language=self.language)
         self.training_buckets = self.training_data_processor.process_or_load_data()
 
-        # self.ast_util, self.training_buckets = self.process_or_load_data()        
+        # self.ast_util, self.training_buckets = self.process_or_load_data()
         self.data_loader = DataLoader(self.batch_size)
-            
+
         # ------------Set up the neural network------------
-        self.infercode_model = InferCodeModel(num_types=self.node_type_vocab.get_vocabulary_size(), 
-                                              num_tokens=self.node_token_vocab.get_vocabulary_size(), 
+        self.infercode_model = InferCodeModel(num_types=self.node_type_vocab.get_vocabulary_size(),
+                                              num_tokens=self.node_token_vocab.get_vocabulary_size(),
                                               num_subtrees=self.subtree_vocab.get_vocabulary_size(),
                                               num_languages=self.language_util.get_num_languages(),
-                                              num_conv=self.num_conv, 
-                                              node_type_dim=self.node_type_dim, 
+                                              num_conv=self.num_conv,
+                                              node_type_dim=self.node_type_dim,
                                               node_token_dim=self.node_token_dim,
-                                              conv_output_dim=self.conv_output_dim, 
-                                              include_token=self.include_token, 
-                                              batch_size=self.batch_size, 
+                                              conv_output_dim=self.conv_output_dim,
+                                              include_token=self.include_token,
+                                              batch_size=self.batch_size,
                                               learning_rate=self.learning_rate)
 
         self.saver = tf.train.Saver(save_relative_paths=True, max_to_keep=5)
@@ -76,12 +77,12 @@ class InferCodeTrainer(BaseClient):
         # -------------------------------------------------
 
     def train(self):
-        for epoch in range(1,  self.epochs + 1):
-            train_batch_iterator = ThreadedIterator(self.data_loader.make_minibatch_iterator(self.training_buckets), max_queue_size=5)
+        for epoch in range(1, self.epochs + 1):
+            train_batch_iterator = ThreadedIterator(
+                self.data_loader.make_minibatch_iterator(self.training_buckets), max_queue_size=5)
             for train_step, train_batch_data in enumerate(train_batch_iterator):
                 _, err = self.sess.run(
-                    [self.infercode_model.training_point,
-                    self.infercode_model.loss],
+                    [self.infercode_model.training_point, self.infercode_model.loss],
                     feed_dict={
                         self.infercode_model.placeholders["node_type"]: train_batch_data["batch_node_type_id"],
                         self.infercode_model.placeholders["node_tokens"]:  train_batch_data["batch_node_tokens_id"],
@@ -95,7 +96,6 @@ class InferCodeTrainer(BaseClient):
                 )
 
                 self.LOGGER.info(f"Training at epoch {epoch} and step {train_step} with loss {err}")
-                train_step % self.checkpoint_every
                 if train_step % self.checkpoint_every == 0:
                     self.saver.save(self.sess, self.checkfile)                  
                     self.LOGGER.info(f"Checkpoint saved, epoch {epoch} and step {train_step} with loss {err}")
